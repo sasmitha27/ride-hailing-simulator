@@ -54,3 +54,11 @@ model Ride {
   driver    Driver    @relation(fields: [driverId], references: [id])
   request   RideRequest @relation(fields: [requestId], references: [id])
 }
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+}

@@ -39,3 +39,30 @@ export interface SimulationState {
   rides: Ride[];
   queue: RideRequest[];
 }
+
+export interface RideSummary {
+  id: number;
+  status: string;
+  rider: {
+    id: number;
+    name: string;
+  };
+  customer: {
+    id: number | null;
+    name: string;
+  };
+  pickup: {
+    lat: number;
+    lng: number;
+  };
+  destination: {
+    lat: number;
+    lng: number;
+  };
+  distanceKm: number;
+  tripDurationSeconds: number | null;
+  arrivalToCustomerSeconds: number | null;
+  requestedAt: string;
+  tripStartedAt: string | null;
+  tripEndedAt: string | null;
+}

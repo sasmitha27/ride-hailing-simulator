@@ -16,8 +16,10 @@ export function NavBar(): JSX.Element {
       </div>
 
       <nav className="hidden md:flex items-center gap-3">
-        <Link to="/" className={linkClass("/")}>Simulator</Link>
-        <Link to="/drivers" className={linkClass("/drivers")}>Drivers</Link>
+          <Link to="/" className={linkClass("/")}>Simulator</Link>
+          <Link to="/drivers" className={linkClass("/drivers")}>Drivers</Link>
+          <Link to="/customers" className={linkClass("/customers")}>Customers</Link>
+          <Link to="/rides" className={linkClass("/rides")}>Rides</Link>
       </nav>
     </div>
   );

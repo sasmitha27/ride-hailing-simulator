@@ -1,5 +1,5 @@
 import axios from "axios";
-import { SimulationState } from "./types";
+import { RideSummary, SimulationState } from "./types";
 
 const API_BASE = "http://localhost:4000";
 
@@ -29,4 +29,14 @@ export async function addRideRequest(payload: {
 
 export async function triggerQueueProcessing(): Promise<void> {
   await axios.post(`${API_BASE}/simulation/process`);
+}
+
+export async function fetchCustomers(): Promise<Array<{ id: number; name: string; latitude: number; longitude: number }>> {
+  const res = await axios.get(`${API_BASE}/customers`);
+  return res.data;
+}
+
+export async function fetchRides(): Promise<RideSummary[]> {
+  const res = await axios.get<RideSummary[]>(`${API_BASE}/rides`);
+  return res.data;
 }

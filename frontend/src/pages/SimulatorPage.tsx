@@ -25,7 +25,6 @@ const emptyState: SimulationState = {
 export function SimulatorPage(): JSX.Element {
   const [state, setState] = useState<SimulationState>(emptyState);
   const [latestEta, setLatestEta] = useState<number | null>(null);
-  const [feed, setFeed] = useState<string[]>([]);
   const [uiMessage, setUiMessage] = useState<string>("");
   const [isAddingRequest, setIsAddingRequest] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
@@ -47,7 +46,6 @@ export function SimulatorPage(): JSX.Element {
 
     socket.on("ride:assigned", (payload) => {
       setLatestEta(payload.etaMinutes);
-      setFeed((prev) => [`Ride ${payload.ride.id} assigned (ETA ${payload.etaMinutes.toFixed(1)} min)`, ...prev].slice(0, 12));
       fetchSimulationState().then(setState).catch(console.error);
     });
 
@@ -60,12 +58,11 @@ export function SimulatorPage(): JSX.Element {
       }));
     });
 
-    socket.on("ride:picked_up", (payload) => {
-      setFeed((prev) => [`Ride ${payload.rideId} picked up`, ...prev].slice(0, 12));
+    socket.on("ride:picked_up", () => {
+      fetchSimulationState().then(setState).catch(console.error);
     });
 
-    socket.on("ride:completed", (payload) => {
-      setFeed((prev) => [`Ride ${payload.rideId} completed`, ...prev].slice(0, 12));
+    socket.on("ride:completed", () => {
       fetchSimulationState().then(setState).catch(console.error);
     });
 
@@ -168,31 +165,7 @@ export function SimulatorPage(): JSX.Element {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-300/60 bg-white/80 p-4 shadow-sm backdrop-blur">
-            <h3 className="mb-3 text-lg font-semibold text-ink">Recent Rides</h3>
-            <div className="max-h-52 space-y-2 overflow-auto text-sm">
-              {state.rides.length === 0 && <p className="text-slate-500">No rides yet.</p>}
-              {state.rides.map((ride) => (
-                <div className="rounded-md border p-2" key={ride.id}>
-                  <p className="font-semibold">Ride #{ride.id}</p>
-                  <p className="text-slate-600">Driver: {ride.driver.name} | Status: {ride.status}</p>
-                  <p className="text-slate-600">Distance: {ride.distance.toFixed(2)} km</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="rounded-xl border border-slate-300/60 bg-white/80 p-4 shadow-sm backdrop-blur">
-            <h3 className="mb-3 text-lg font-semibold text-ink">Simulation Feed</h3>
-            <div className="max-h-52 space-y-2 overflow-auto text-sm">
-              {feed.length === 0 && <p className="text-slate-500">No events yet.</p>}
-              {feed.map((line, index) => (
-                <p key={`${line}-${index}`} className="rounded-md border bg-slate-50 px-2 py-1">{line}</p>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ async function run(): Promise<void> {
   await prisma.ride.deleteMany();
   await prisma.rideRequest.deleteMany();
   await prisma.driver.deleteMany();
+  await prisma.customer?.deleteMany?.();
 
   await prisma.driver.createMany({
     data: [
@@ -11,9 +12,36 @@ async function run(): Promise<void> {
       { name: "Kasun", latitude: 6.9341, longitude: 79.8501, rating: 4.6, status: "available" },
       { name: "Ayesha", latitude: 6.9157, longitude: 79.8574, rating: 4.9, status: "available" },
       { name: "Ruwan", latitude: 6.9437, longitude: 79.8602, rating: 4.4, status: "available" },
-      { name: "Tharushi", latitude: 6.9015, longitude: 79.8541, rating: 4.7, status: "available" }
+      { name: "Tharushi", latitude: 6.9015, longitude: 79.8541, rating: 4.7, status: "available" },
+      { name: "Dilshan", latitude: 6.9280, longitude: 79.8620, rating: 4.5, status: "available" },
+      { name: "Kamal", latitude: 6.9202, longitude: 79.8548, rating: 4.6, status: "available" },
+      { name: "Priya", latitude: 6.9311, longitude: 79.8605, rating: 4.9, status: "available" },
+      { name: "Saman", latitude: 6.9184, longitude: 79.8682, rating: 4.3, status: "available" },
+      { name: "Chathura", latitude: 6.9390, longitude: 79.8550, rating: 4.6, status: "available" }
     ]
   });
+
+  // create 10 seeded customers with Sri Lankan names and coordinates on land (Colombo)
+  const seededCustomers = [
+    { name: "Supun", latitude: 6.927200, longitude: 79.857500 },
+    { name: "Rashmi", latitude: 6.934000, longitude: 79.850000 },
+    { name: "Dinuka", latitude: 6.915500, longitude: 79.857000 },
+    { name: "Madhushanka", latitude: 6.943000, longitude: 79.860000 },
+    { name: "Amal", latitude: 6.901500, longitude: 79.854000 },
+    { name: "Sanduni", latitude: 6.935000, longitude: 79.865000 },
+    { name: "Nadeesha", latitude: 6.920000, longitude: 79.870000 },
+    { name: "Shani", latitude: 6.930000, longitude: 79.845000 },
+    { name: "Kumudini", latitude: 6.940000, longitude: 79.855000 },
+    { name: "Thushara", latitude: 6.925000, longitude: 79.875000 }
+  ];
+
+  // recreate customers (safe if model exists)
+  try {
+    await prisma.customer.deleteMany();
+    await prisma.customer.createMany({ data: seededCustomers });
+  } catch (err) {
+    // if migrations haven't been applied yet, ignore here
+  }
 
   await prisma.rideRequest.createMany({
     data: [
