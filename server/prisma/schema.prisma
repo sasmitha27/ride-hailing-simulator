@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Location {
+  id          Int       @id @default(autoincrement())
+  name        String
+  country     String
+  continent   String
+  description String
+  imageUrl    String
+  featured    Boolean   @default(false)
+  packages    Package[]
+}
+
+model Package {
+  id          Int      @id @default(autoincrement())
+  title       String
+  destination String
+  location    Location? @relation(fields: [locationId], references: [id])
+  locationId  Int?
+  duration    Int
+  price       Float
+  description String
+  imageUrl    String
+  includes    Json
+  featured    Boolean  @default(false)
+}
+
+model AdminUser {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+}

@@ -1,0 +1,32 @@
+{
+  "drivers": [
+    { "name": "Nimal", "latitude": 6.9275, "longitude": 79.8616, "rating": 4.8 },
+    { "name": "Kasun", "latitude": 6.9341, "longitude": 79.8501, "rating": 4.6 },
+    { "name": "Ayesha", "latitude": 6.9157, "longitude": 79.8574, "rating": 4.9 },
+    { "name": "Ruwan", "latitude": 6.9437, "longitude": 79.8602, "rating": 4.4 },
+    { "name": "Tharushi", "latitude": 6.9015, "longitude": 79.8541, "rating": 4.7 }
+  ],
+  "rideRequests": [
+    {
+      "passengerLat": 6.926,
+      "passengerLng": 79.8581,
+      "destinationLat": 6.944,
+      "destinationLng": 79.8751,
+      "priority": false
+    },
+    {
+      "passengerLat": 6.9178,
+      "passengerLng": 79.845,
+      "destinationLat": 6.9044,
+      "destinationLng": 79.8799,
+      "priority": true
+    },
+    {
+      "passengerLat": 6.9349,
+      "passengerLng": 79.8712,
+      "destinationLat": 6.9104,
+      "destinationLng": 79.8492,
+      "priority": false
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+.header {
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 6px 18px -14px rgba(0,0,0,0.2);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #2d3436;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.logo-icon {
+  font-size: 1.8rem;
+}
+
+.logo-text {
+  color: #2d3436;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  flex: 1;
+  justify-content: center;
+}
+
+
+/* stronger selector to override Bootstrap's .nav .nav-link */
+.header .nav .nav-link,
+.header .nav a.nav-link {
+  text-decoration: none;
+  color: #000000 !important;
+  font-weight: 600;
+  font-size: 1.15rem;
+  position: relative;
+  transition: color 0.18s ease, transform 0.12s ease;
+}
+
+.header .nav .nav-link:hover,
+.header .nav a.nav-link:hover {
+  color: #000000 !important;
+  transform: translateY(-1px);
+}
+
+.header .nav .nav-link.active,
+.header .nav a.nav-link.active {
+  color: var(--primary-color) !important;
+}
+
+.header .nav .nav-link.active::after,
+.header .nav a.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 3px;
+  background: var(--primary-color);
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    padding: 1rem;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .nav-link {
+    font-size: 1rem;
+  }
+}

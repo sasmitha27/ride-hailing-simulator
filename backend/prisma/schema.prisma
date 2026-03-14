@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DriverStatus {
+  available
+  busy
+}
+
+enum RideRequestStatus {
+  waiting
+  matched
+  picked_up
+  completed
+  cancelled
+}
+
+model Driver {
+  id        Int          @id @default(autoincrement())
+  name      String
+  latitude  Float
+  longitude Float
+  status    DriverStatus @default(available)
+  rating    Float        @default(4.5)
+  rides     Ride[]
+}
+
+model RideRequest {
+  id             Int               @id @default(autoincrement())
+  passengerLat   Float
+  passengerLng   Float
+  destinationLat Float
+  destinationLng Float
+  priority       Boolean           @default(false)
+  status         RideRequestStatus @default(waiting)
+  createdAt      DateTime          @default(now())
+  ride           Ride?
+}
+
+model Ride {
+  id        Int       @id @default(autoincrement())
+  driverId  Int
+  requestId Int       @unique
+  startTime DateTime?
+  endTime   DateTime?
+  distance  Float     @default(0)
+  status    String    @default("assigned")
+
+  driver    Driver    @relation(fields: [driverId], references: [id])
+  request   RideRequest @relation(fields: [requestId], references: [id])
+}
