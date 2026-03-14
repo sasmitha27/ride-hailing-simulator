@@ -11,6 +11,10 @@ function formatDuration(seconds: number | null): string {
   return `${mins}m ${secs}s`;
 }
 
+function formatDistanceKm(distanceKm: number): string {
+  return `${distanceKm.toFixed(2)} km`;
+}
+
 export function RidesPage(): JSX.Element {
   const [rides, setRides] = useState<RideSummary[]>([]);
 
@@ -28,7 +32,7 @@ export function RidesPage(): JSX.Element {
     <div className="min-h-screen bg-gradient-to-br from-[#f1f5f9] via-[#e0f2fe] to-[#ecfeff] px-4 py-6 text-ink">
       <div className="mx-auto max-w-7xl space-y-4">
         <header className="rounded-2xl bg-sea p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="rounded-full bg-white p-2 text-sea font-extrabold text-xl shadow-sm">H</div>
               <div className="text-white text-2xl font-bold">hailrider</div>
@@ -52,6 +56,7 @@ export function RidesPage(): JSX.Element {
                   <th className="px-3 py-3">Rider</th>
                   <th className="px-3 py-3">Customer</th>
                   <th className="px-3 py-3">Destination</th>
+                  <th className="px-3 py-3">Distance</th>
                   <th className="px-3 py-3">Trip Duration</th>
                   <th className="px-3 py-3">Driver Arrival</th>
                 </tr>
@@ -66,13 +71,14 @@ export function RidesPage(): JSX.Element {
                     <td className="px-3 py-3 text-slate-700">
                       {ride.destination.lat.toFixed(4)}, {ride.destination.lng.toFixed(4)}
                     </td>
+                    <td className="px-3 py-3 text-slate-700">{formatDistanceKm(ride.distanceKm)}</td>
                     <td className="px-3 py-3 text-slate-700">{formatDuration(ride.tripDurationSeconds)}</td>
                     <td className="px-3 py-3 text-slate-700">{formatDuration(ride.arrivalToCustomerSeconds)}</td>
                   </tr>
                 ))}
                 {rides.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
+                    <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
                       No rides yet.
                     </td>
                   </tr>

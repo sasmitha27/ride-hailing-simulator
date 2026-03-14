@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { QueuePanel } from "../components/QueuePanel";
 import { RequestForm } from "../components/RequestForm";
 import { StatsPanel } from "../components/StatsPanel";
 import { SimulationMap } from "../map/SimulationMap";
 import NavBar from "../components/NavBar";
-import { addRideRequest, fetchSimulationState, triggerQueueProcessing } from "../simulation/api";
+import { addRideRequest, fetchSimulationState } from "../simulation/api";
 import { getSocket } from "../simulation/socket";
 import { SimulationState } from "../simulation/types";
 
@@ -98,7 +99,7 @@ export function SimulatorPage(): JSX.Element {
     <div className="min-h-screen bg-gradient-to-br from-[#f1f5f9] via-[#e0f2fe] to-[#ecfeff] px-4 py-6 text-ink">
       <div className="mx-auto max-w-7xl space-y-4">
         <header className="rounded-2xl bg-sea p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="rounded-full bg-white p-2 text-sea font-extrabold text-xl shadow-sm">H</div>
               <div className="text-white text-2xl font-bold">hailrider</div>
@@ -146,24 +147,32 @@ export function SimulatorPage(): JSX.Element {
 
                 try {
                   await addRideRequest(payload);
-                  await triggerQueueProcessing();
                   const latest = await fetchSimulationState();
                   setState(latest);
                   setPendingPickupLocation(null);
                   setPendingDestinationLocation(null);
                   setUiMessage("Ride request added successfully.");
-                } catch (_error) {
-                  setUiMessage("Failed to add ride request. Ensure backend API is running and reachable on http://localhost:4000.");
+                } catch (error) {
+                  if (axios.isAxiosError(error)) {
+                    const backendMessage = (error.response?.data as { message?: string } | undefined)?.message;
+                    if (backendMessage) {
+                      setUiMessage(backendMessage);
+                    } else {
+                      setUiMessage("Failed to add ride request. Ensure backend API is running and reachable on http://localhost:4000.");
+                    }
+                  } else {
+                    setUiMessage("Failed to add ride request. Ensure backend API is running and reachable on http://localhost:4000.");
+                  }
                 } finally {
                   setIsAddingRequest(false);
                 }
               }}
               />
             </div>
-
-            <QueuePanel queue={state.queue} />
           </div>
         </div>
+
+        <QueuePanel queue={state.queue} />
 
 
       </div>

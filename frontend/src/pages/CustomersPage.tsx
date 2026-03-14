@@ -14,7 +14,7 @@ export function CustomersPage(): JSX.Element {
     <div className="min-h-screen bg-gradient-to-br from-[#f1f5f9] via-[#e0f2fe] to-[#ecfeff] px-4 py-6 text-ink">
       <div className="mx-auto max-w-7xl space-y-4">
         <header className="rounded-2xl bg-sea p-5 text-white shadow-lg">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <div className="rounded-full bg-white p-2 text-sea font-extrabold text-xl shadow-sm">H</div>
               <div className="text-white text-2xl font-bold">hailrider</div>

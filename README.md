@@ -1,402 +1,129 @@
-<<<<<<< HEAD
-# Ceylon Travo - Modern Tour Website
+# Ride-Hailing Driver Matching Simulator
 
-A dynamic, modern tour website built with React, TypeScript, and Vite. This application allows users to browse travel destinations and packages, while administrators can manage all content through an admin panel.
+A web-based simulation demonstrating how a ride-hailing system matches passengers to drivers using classic data structures and algorithms.
 
-## Features
+---
 
-### User Features
-- **Home Page**: Hero section with featured destinations
-- **Packages**: Browse tour packages with advanced filters (destination, duration, price)
-- **Locations**: Explore destinations by continent with search functionality
-- **About Us**: Company information and why choose us
-- **Contact Us**: Contact form and company contact information
-- **WhatsApp Integration**: Floating WhatsApp button for instant communication
+## Quick overview
 
-### Admin Features
-- **Admin Authentication**: Secure login system
-- **Dashboard**: Manage all website content
-- **Location Management**: Add, edit, delete locations
-- **Package Management**: Add, edit, delete tour packages
-- **Featured Content**: Select which items appear on the home page
-- **Local Storage**: All data persists in browser localStorage
+- Backend: Node.js + Express + Socket.io (TypeScript)
+- Frontend: React + TypeScript + Vite
+- Database: PostgreSQL via Prisma
+- Purpose: simulate ride requests, match drivers, and stream driver movement in real time.
 
-## Tech Stack
+---
 
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **React Router DOM** - Client-side routing
-- **Vite** - Build tool and dev server
-- **CSS3** - Modern styling with gradients and animations
-- **LocalStorage** - Data persistence
+## Key algorithms and data structures
 
-## Getting Started
+- **Weighted Graph** (`backend/src/algorithms/Graph.ts`) — adjacency list storing neighbor edges with weights.
+- **Dijkstra's shortest path** (`backend/src/algorithms/dijkstra.ts`) — finds shortest route between graph nodes; used to estimate driving distance along the city graph.
+- **Haversine distance & ETA** (`backend/src/algorithms/geo.ts`) — computes great-circle distance and converts to ETA using average speed.
+- **Priority Queue** (`backend/src/queue/PriorityQueue.ts`) — simple array-based priority queue used by Dijkstra and the request manager.
+- **FIFO Queue** (`backend/src/queue/Queue.ts`) — standard queue for normal requests.
+- **RideRequestManager** (`backend/src/queue/RideRequestManager.ts`) — combines priority + normal queues so priority requests are served first.
+- **Matching (Greedy)** (`backend/src/services/MatchingService.ts`) — filters nearby drivers using haversine distance, scores drivers using:
 
-### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
+  driver_score = route_distance_km + estimated_arrival_minutes
 
-### Installation
+  and picks the lowest score (greedy choice).
 
-1. Clone the repository or navigate to the project directory:
-```bash
-cd ceylontravo
-```
+---
 
-2. Install dependencies:
+## How the simulation works (high level)
+
+1. A passenger creates a ride request (API or auto-generator).
+2. Request is enqueued via `RideRequestManager` (priority requests first).
+3. The `SimulationEngine` processes the queue, finds available drivers, and calls `MatchingService`.
+4. `MatchingService` filters drivers by radius, computes shortest path with Dijkstra, estimates ETA, scores drivers and returns the best candidate.
+5. Driver is assigned (status -> `busy`) and `SimulationEngine` simulates movement along the graph path, emitting events over Socket.io: `ride:assigned`, `driver:moved`, `ride:picked_up`, `ride:completed`.
+6. On completion, the ride and driver states are updated in the DB and the queue is reprocessed.
+
+---
+
+## Important files (quick links)
+
+- `backend/src/algorithms/dijkstra.ts`
+- `backend/src/algorithms/Graph.ts`
+- `backend/src/algorithms/cityGraph.ts`
+- `backend/src/algorithms/geo.ts`
+- `backend/src/services/MatchingService.ts`
+- `backend/src/services/SimulationEngine.ts`
+- `backend/src/queue/PriorityQueue.ts`
+- `backend/src/queue/Queue.ts`
+- `backend/src/queue/RideRequestManager.ts`
+
+---
+
+## Getting started (development)
+
+Prerequisites:
+- Node.js 18+
+- PostgreSQL 14+
+
+1. Install project dependencies (from repository root):
+
 ```bash
 npm install
 ```
 
-3. Start the development server:
-```bash
-npm run dev
-```
-
-4. Open your browser and visit `http://localhost:5173`
-
-### Building for Production
-
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory.
-
-### Preview Production Build
-
-```bash
-npm run preview
-```
-
-## Admin Access
-
-To access the admin panel:
-
-1. Navigate to `/admin`
-2. Use the default credentials:
-   - **Username**: `admin`
-   - **Password**: `admin123`
-
-### Admin Features
-
-- **Home Page Tab**: Select which locations appear as featured on the home page
-- **Packages Tab**: Create, edit, and delete tour packages
-- **Locations Tab**: Create, edit, and delete travel destinations
-
-All changes are automatically saved to browser localStorage.
-
-## Project Structure
-
-```
-ceylontravo/
-├── src/
-│   ├── components/          # Reusable components
-│   │   ├── Header.tsx
-│   │   ├── Footer.tsx
-│   │   └── WhatsAppButton.tsx
-│   ├── pages/              # Page components
-│   │   ├── Home.tsx
-│   │   ├── Packages.tsx
-│   │   ├── Locations.tsx
-│   │   ├── About.tsx
-│   │   ├── Contact.tsx
-│   │   ├── AdminLogin.tsx
-│   │   └── AdminDashboard.tsx
-│   ├── context/            # React Context
-│   │   └── AppContext.tsx
-│   ├── types/              # TypeScript types
-│   │   └── index.ts
-│   ├── utils/              # Utility functions
-│   │   └── storage.ts
-│   ├── App.tsx             # Main App component
-│   ├── main.tsx            # Entry point
-│   └── App.css             # Global styles
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## Features Breakdown
-
-### Data Persistence
-All data is stored in browser localStorage using a centralized storage utility. The application initializes with default data on first load.
-
-### Responsive Design
-The website is fully responsive and works seamlessly on:
-- Desktop (1400px+)
-- Tablet (768px - 1399px)
-- Mobile (< 768px)
-
-### Modern UI/UX
-- Gradient backgrounds
-- Smooth animations and transitions
-- Hover effects on cards
-- Clean, modern design
-- Intuitive navigation
-- Accessibility considerations
-
-## Customization
-
-### Changing Default Admin Credentials
-
-Edit the default admin credentials in `src/utils/storage.ts`:
-
-```typescript
-adminUser: {
-  username: 'your-username',
-  password: 'your-password'
-}
-```
-
-### Changing Contact Information
-
-Update contact details in `src/utils/storage.ts`:
-
-```typescript
-contactInfo: {
-  email: 'your-email@example.com',
-  phone: 'your-phone-number',
-  address: 'your-address'
-}
-```
-
-### Adding Sample Data
-
-Sample locations and packages are pre-loaded in `src/utils/storage.ts`. You can modify these or add more through the admin panel.
-
-## Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-
-## Performance
-
-- Code splitting with React Router
-- Optimized images with lazy loading
-- Efficient state management with Context API
-- Fast builds with Vite
-
-## Future Enhancements
-
-Potential improvements for future versions:
-- Backend API integration
-- User authentication and bookings
-- Payment gateway integration
-- Email notifications
-- Image upload functionality
-- Multi-language support
-- SEO optimization
-- Analytics integration
-
-## License
-
-This project is available for educational and commercial use.
-
-## Support
-
-For support or questions, contact: info@ceylontravo.com
-
----
-
-**Built with ❤️ using React + TypeScript + Vite**
-=======
-# Ride-Hailing Driver Matching Simulator
-
-A web-based simulation that demonstrates how ride-hailing apps match passengers to nearby drivers using classic data structures and algorithms.
-
-## Tech Stack
-
-- Language: TypeScript
-- Backend: Node.js + Express + Socket.io
-- Database: PostgreSQL
-- ORM: Prisma
-- Frontend: React + TypeScript + Vite
-- Styling: TailwindCSS
-- Map Visualization: Leaflet + OpenStreetMap
-- Real-time Updates: Socket.io
-
-## Project Structure
-
-```text
-ride-hailing-simulator
-├── backend
-│   ├── src
-│   │   ├── controllers
-│   │   ├── services
-│   │   ├── algorithms
-│   │   ├── queue
-│   │   ├── routes
-│   │   └── data
-│   └── prisma
-├── frontend
-│   └── src
-│       ├── components
-│       ├── map
-│       ├── simulation
-│       └── pages
-└── README.md
-```
-
-## Data Structures and Algorithms Demonstrated
-
-1. Queue (FIFO)
-- File: `backend/src/queue/Queue.ts`
-- Methods implemented: `enqueue`, `dequeue`, `peek`
-- Used for normal ride requests.
-
-2. Priority Queue
-- File: `backend/src/queue/PriorityQueue.ts`
-- Priority requests are dequeued before normal requests.
-
-3. Graph (City Road Network)
-- File: `backend/src/algorithms/Graph.ts`
-- Nodes = city points, edges = roads weighted by distance.
-
-4. Shortest Path (Dijkstra)
-- File: `backend/src/algorithms/dijkstra.ts`
-- Computes the shortest weighted route from driver node to passenger node.
-
-5. Greedy Matching
-- File: `backend/src/services/MatchingService.ts`
-- Driver score:
-
-```text
-driver_score = distance_to_passenger + estimated_arrival_time
-```
-
-- Chooses driver with minimum score.
-
-6. ETA Formula
-
-```text
-ETA = distance / average_speed
-```
-
-(implemented as minutes in `backend/src/algorithms/geo.ts`)
-
-7. Spatial Filtering
-- `MatchingService.findNearbyDrivers`
-- Haversine distance to filter drivers within configurable radius (default 5 km).
-
-## Simulation Flow
-
-1. Passenger submits ride request.
-2. Request enters queue (priority requests go first).
-3. System finds nearby available drivers.
-4. Dijkstra computes route distance.
-5. Greedy matcher selects best driver.
-6. Driver assigned and status becomes `busy`.
-7. Driver movement is emitted in real time over Socket.io.
-8. Pickup event occurs.
-9. Ride completes; driver becomes `available` again.
-
-## Database Schema (PostgreSQL + Prisma)
-
-Defined in `backend/prisma/schema.prisma` with:
-
-- `Driver`
-  - id, name, latitude, longitude, status, rating
-- `RideRequest`
-  - id, passengerLat, passengerLng, destinationLat, destinationLng, priority, status
-- `Ride`
-  - id, driverId, requestId, startTime, endTime, distance, status
-
-SQL version of schema and seed data:
-- `backend/prisma/init.sql`
-
-## API Routes
-
-Base URL: `http://localhost:4000`
-
-- `GET /health`
-- `GET /drivers`
-- `POST /drivers`
-- `GET /requests`
-- `POST /requests`
-- `GET /simulation/state`
-- `POST /simulation/process`
-
-### Sample Request Bodies
-
-Add driver:
-
-```json
-{
-  "name": "New Driver",
-  "latitude": 6.9271,
-  "longitude": 79.8612,
-  "rating": 4.7
-}
-```
-
-Add ride request:
-
-```json
-{
-  "passengerLat": 6.9260,
-  "passengerLng": 79.8581,
-  "destinationLat": 6.9440,
-  "destinationLng": 79.8751,
-  "priority": true
-}
-```
-
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL 14+
-
-### 1. Install Dependencies
-
-From project root:
-
-```bash
-npm run install:all
-```
-
-### 2. Configure Backend Environment
+2. Backend setup
 
 ```bash
 cd backend
 cp .env.example .env
-```
-
-Update `DATABASE_URL` in `.env`.
-
-### 3. Create Database Schema
-
-Option A (Prisma):
-
-```bash
+# edit .env to set DATABASE_URL and optional settings
+npm install
 npm run prisma:generate
 npm run prisma:migrate -- --name init
-```
-
-Option B (Raw SQL):
-
-Run `backend/prisma/init.sql` in PostgreSQL.
-
-### 4. Seed Example Data
-
-```bash
 npm run prisma:seed
+npm run dev
 ```
 
-### 5. Run Backend
+Environment variables used by the simulator (examples in `backend/.env`):
+
+- `DATABASE_URL` — Postgres connection string
+- `AVERAGE_SPEED_KMH` — average driver speed for ETA (default 30)
+- `DRIVER_SEARCH_RADIUS_KM` — search radius for nearby drivers (default 5)
+- `AUTO_REQUEST_BATCH_SIZE`, `AUTO_REQUEST_INTERVAL_MS` — auto request generator settings
+
+3. Frontend setup (from repository root):
 
 ```bash
-npm run dev:backend
+cd frontend
+npm install
+npm run dev
 ```
 
-### 6. Run Frontend
+Open `http://localhost:5173` and ensure backend is running (default: `http://localhost:4000`).
 
-In another terminal from root:
+---
+
+## Runtime events (Socket.io)
+
+- `simulation:state` — full snapshot of simulation
+- `queue:updated` — current queue contents
+- `ride:assigned` — a ride was assigned to a driver
+- `driver:moved` — driver position update
+- `ride:picked_up` — passenger picked up
+- `ride:completed` — ride completed
+
+---
+
+## Notes, limitations & suggestions
+
+- The graph is a simplified city graph (`backend/src/algorithms/cityGraph.ts`) with a small set of nodes used for demonstration; Dijkstra runs on this graph rather than on raw lat/lng.
+- Matching is **greedy** (locally optimal) and may not be globally optimal for fleet-wide objectives — consider a global assignment (Hungarian algorithm / min-cost flow) for production.
+- Priority queue implementation is array-based and acceptable for small sizes; switch to a binary heap for better performance on larger graphs/queues.
+
+---
+
+If you'd like, I can:
+
+- Add a short section explaining algorithmic complexity for each algorithm.
+- Produce a diagram of the simulation flow.
+- Add quick `curl` examples for key API endpoints.
+
+Enjoy exploring the simulator!
 
 ```bash
 npm run dev:frontend

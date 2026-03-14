@@ -21,7 +21,7 @@ async function run(): Promise<void> {
     ]
   });
 
-  // create 10 seeded customers with Sri Lankan names and coordinates on land (Colombo)
+  // create 20 seeded customers with Sri Lankan names and coordinates on land (Colombo)
   const seededCustomers = [
     { name: "Supun", latitude: 6.927200, longitude: 79.857500 },
     { name: "Rashmi", latitude: 6.934000, longitude: 79.850000 },
@@ -32,7 +32,17 @@ async function run(): Promise<void> {
     { name: "Nadeesha", latitude: 6.920000, longitude: 79.870000 },
     { name: "Shani", latitude: 6.930000, longitude: 79.845000 },
     { name: "Kumudini", latitude: 6.940000, longitude: 79.855000 },
-    { name: "Thushara", latitude: 6.925000, longitude: 79.875000 }
+    { name: "Thushara", latitude: 6.925000, longitude: 79.875000 },
+    { name: "Isuru", latitude: 6.912400, longitude: 79.868500 },
+    { name: "Hasini", latitude: 6.946200, longitude: 79.848900 },
+    { name: "Yohan", latitude: 6.919300, longitude: 79.842700 },
+    { name: "Piumi", latitude: 6.907800, longitude: 79.861300 },
+    { name: "Sachintha", latitude: 6.938600, longitude: 79.872100 },
+    { name: "Navodi", latitude: 6.923700, longitude: 79.853600 },
+    { name: "Kavindu", latitude: 6.932800, longitude: 79.878200 },
+    { name: "Mihiri", latitude: 6.917000, longitude: 79.876400 },
+    { name: "Roshan", latitude: 6.944900, longitude: 79.865700 },
+    { name: "Vihangi", latitude: 6.909900, longitude: 79.846300 }
   ];
 
   // recreate customers (safe if model exists)

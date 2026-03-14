@@ -36,45 +36,44 @@ export function DriversPage(): JSX.Element {
   return (
     <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(125,211,252,0.35),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(191,219,254,0.45),_transparent_28%),linear-gradient(180deg,#f8fbff_0%,#edf7ff_100%)] px-4 py-6 text-ink">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-[28px] bg-slate-900 p-5 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="rounded-full bg-white p-2 text-sea font-extrabold text-xl shadow-sm">H</div>
-              <div className="text-white text-2xl font-bold">hailrider</div>
+        <header className="rounded-[20px] bg-slate-900 p-4 text-white shadow-lg">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-white p-2 text-sea font-extrabold text-lg shadow-sm">H</div>
+              <div>
+                <div className="text-white text-lg font-bold">hailrider</div>
+                <div className="text-sm text-white/80">Fleet dashboard</div>
+              </div>
             </div>
             <NavBar />
           </div>
         </header>
 
-        <section className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-          <div className="rounded-[28px] border border-white/70 bg-white/85 p-6 shadow-[0_18px_45px_rgba(148,163,184,0.18)] backdrop-blur">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-600">Fleet management</p>
-                <h2 className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">Drivers</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Manage driver availability, monitor live map positions, and add new drivers with a cleaner workflow.
-                </p>
+        <section className="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
+          <div className="rounded-[20px] border border-white/60 bg-white/95 p-6 shadow-sm">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Fleet management</p>
+                <h2 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">Drivers</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">Manage driver availability and monitor live positions on the map.</p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                <div className="min-w-[140px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Total drivers</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">{drivers.length}</p>
+              <div className="grid w-full grid-cols-3 gap-3 items-center">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Total drivers</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-900">{drivers.length}</p>
                 </div>
-                <div className="min-w-[140px] rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-emerald-700">Available now</p>
-                  <p className="mt-2 text-2xl font-semibold text-emerald-900">{availableDrivers}</p>
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-emerald-700">Available now</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-900">{availableDrivers}</p>
                 </div>
-                <div className="min-w-[140px] rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-amber-700">Avg. rating</p>
-                  <p className="mt-2 text-2xl font-semibold text-amber-900">{averageRating.toFixed(1)}</p>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+                  <p className="text-xs uppercase tracking-wide text-amber-700">Avg. rating</p>
+                  <p className="mt-1 text-2xl font-bold text-amber-900">{averageRating.toFixed(1)}</p>
                 </div>
               </div>
             </div>
           </div>
-
-          
         </section>
 
         {selectionMode === "driver" && (
@@ -148,33 +147,32 @@ export function DriversPage(): JSX.Element {
               <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
                 {drivers.map((d) => (
                   <div key={d.id} className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-4 text-sm transition hover:border-blue-200 hover:bg-white hover:shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                            {d.name.slice(0, 1).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">{d.name}</p>
-                            <p className="text-xs text-slate-500">Driver #{d.id}</p>
-                          </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
+                          {d.name.slice(0, 1).toUpperCase()}
                         </div>
-
-                        <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                          <div className="rounded-xl bg-white px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Location</p>
-                            <p className="mt-1 font-medium text-slate-700">{d.latitude.toFixed(4)}, {d.longitude.toFixed(4)}</p>
-                          </div>
-                          <div className="rounded-xl bg-white px-3 py-2">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Rating</p>
-                            <p className="mt-1 font-medium text-slate-700">★ {d.rating.toFixed(1)}</p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">
+                            {d.name} <span className="ml-2 text-xs text-slate-500">#{d.id}</span>
+                          </p>
                         </div>
                       </div>
 
                       <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${d.status === "available" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                         {d.status}
                       </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                      <div className="rounded-xl bg-white px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Location</p>
+                        <p className="mt-1 font-medium text-slate-700 truncate">{d.latitude.toFixed(4)}, {d.longitude.toFixed(4)}</p>
+                      </div>
+                      <div className="rounded-xl bg-white px-3 py-2">
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Rating</p>
+                        <p className="mt-1 font-medium text-slate-700">★ {d.rating.toFixed(1)}</p>
+                      </div>
                     </div>
                   </div>
                 ))}

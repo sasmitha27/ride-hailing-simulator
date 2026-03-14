@@ -11,6 +11,9 @@ const averageSpeedKmh = Number(process.env.AVERAGE_SPEED_KMH ?? 30);
 const searchRadiusKm = Number(process.env.DRIVER_SEARCH_RADIUS_KM ?? 5);
 const autoRequestBatchSize = Number(process.env.AUTO_REQUEST_BATCH_SIZE ?? 2);
 const autoRequestIntervalMs = Number(process.env.AUTO_REQUEST_INTERVAL_MS ?? 10000);
+const queueHoldBeforeProcessingMs = Number(process.env.QUEUE_HOLD_BEFORE_PROCESSING_MS ?? 3000);
+const driverAnimationMinMs = Number(process.env.DRIVER_ANIMATION_MIN_MS ?? 10000);
+const driverAnimationMaxMs = Number(process.env.DRIVER_ANIMATION_MAX_MS ?? 25000);
 const cityGraph = buildCityGraph();
 
 export class SimulationEngine {
@@ -19,6 +22,7 @@ export class SimulationEngine {
   private processing = false;
   private randomMoverStarted = false;
   private autoRequesterStarted = false;
+  private processQueueTimeout: NodeJS.Timeout | null = null;
 
   constructor(private readonly io: SocketIOServer) {}
 
@@ -84,6 +88,9 @@ export class SimulationEngine {
         createdAt: request.createdAt
       });
     }
+    // emit initial queue state so connected clients receive it immediately
+    this.io.emit("queue:updated", this.requestManager.toArray());
+    console.log(`Bootstrap: enqueued ${this.requestManager.toArray().length} pending ride request(s)`);
   }
 
   async enqueueRequest(requestId: number): Promise<void> {
@@ -94,10 +101,29 @@ export class SimulationEngine {
 
     this.requestManager.enqueue({ ...request, createdAt: request.createdAt });
     this.io.emit("queue:updated", this.requestManager.toArray());
-    await this.processQueue();
+    console.log(`Enqueued request ${requestId}; queue size=${this.requestManager.toArray().length}`);
+    this.scheduleQueueProcessing();
+  }
+
+  private scheduleQueueProcessing(): void {
+    if (this.processing || this.processQueueTimeout) {
+      return;
+    }
+
+    this.processQueueTimeout = setTimeout(() => {
+      this.processQueueTimeout = null;
+      this.processQueue().catch((error) => {
+        console.error("Scheduled queue processing failed", error);
+      });
+    }, Math.max(0, queueHoldBeforeProcessingMs));
   }
 
   async processQueue(): Promise<void> {
+    if (this.processQueueTimeout) {
+      clearTimeout(this.processQueueTimeout);
+      this.processQueueTimeout = null;
+    }
+
     if (this.processing) {
       return;
     }
@@ -211,7 +237,22 @@ export class SimulationEngine {
           return null;
         }
 
-        const destinationNode = randomGraphNodeDifferentFrom(nearestGraphNode({ lat: customer.latitude, lng: customer.longitude }));
+        const eligibleDestinationNodes = Object.entries(CITY_NODES)
+          .filter(([, coords]) =>
+            haversineDistanceKm(
+              { lat: customer.latitude, lng: customer.longitude },
+              { lat: coords.lat, lng: coords.lng }
+            ) >= 1
+          )
+          .map(([node]) => node);
+
+        if (eligibleDestinationNodes.length === 0) {
+          return null;
+        }
+
+        const destinationNode =
+          eligibleDestinationNodes[Math.floor(Math.random() * eligibleDestinationNodes.length)]
+          ?? randomGraphNodeDifferentFrom(nearestGraphNode({ lat: customer.latitude, lng: customer.longitude }));
         const destination = CITY_NODES[destinationNode];
 
         return {
@@ -219,7 +260,7 @@ export class SimulationEngine {
           destination
         };
       })
-      .filter((entry): entry is { customer: { id: number; name: string; latitude: number; longitude: number }; destination: { lat: number; lng: number } } => !!entry)
+      .filter(isDefined)
       .sort(() => Math.random() - 0.5)
       .slice(0, Math.min(batchSize, availableDrivers.length));
 
@@ -255,24 +296,29 @@ export class SimulationEngine {
       data: { status: "to_pickup" }
     });
 
-    for (const node of path) {
-      const coords = CITY_NODES[node];
-      await prisma.driver.update({
-        where: { id: driverId },
-        data: {
+    if (path.length > 0) {
+      const totalMs = Math.floor(Math.random() * (driverAnimationMaxMs - driverAnimationMinMs + 1)) + driverAnimationMinMs;
+      const stepMs = Math.max(200, Math.floor(totalMs / path.length));
+
+      for (const node of path) {
+        const coords = CITY_NODES[node];
+        await prisma.driver.update({
+          where: { id: driverId },
+          data: {
+            latitude: coords.lat,
+            longitude: coords.lng
+          }
+        });
+
+        this.io.emit("driver:moved", {
+          driverId,
+          node,
           latitude: coords.lat,
           longitude: coords.lng
-        }
-      });
+        });
 
-      this.io.emit("driver:moved", {
-        driverId,
-        node,
-        latitude: coords.lat,
-        longitude: coords.lng
-      });
-
-      await delay(1000);
+        await delay(stepMs);
+      }
     }
 
     await prisma.ride.update({
@@ -304,6 +350,9 @@ export class SimulationEngine {
           data: { status: "to_destination" }
         });
 
+        const totalMs = Math.floor(Math.random() * (driverAnimationMaxMs - driverAnimationMinMs + 1)) + driverAnimationMinMs;
+        const stepMs = Math.max(200, Math.floor(totalMs / destinationPath.length));
+
         for (const node of destinationPath) {
           const coords = CITY_NODES[node];
           await prisma.driver.update({
@@ -322,7 +371,7 @@ export class SimulationEngine {
             phase: "to_destination"
           });
 
-          await delay(1000);
+          await delay(stepMs);
         }
       }
     }
@@ -378,4 +427,8 @@ function randomGraphNodeDifferentFrom(node: string): string {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isDefined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }

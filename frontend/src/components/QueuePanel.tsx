@@ -8,7 +8,7 @@ export function QueuePanel({ queue }: QueuePanelProps): JSX.Element {
   return (
     <div className="rounded-xl border border-slate-300/60 bg-white/80 p-4 shadow-sm backdrop-blur">
       <h3 className="mb-3 text-lg font-semibold text-ink">Ride Request Queue</h3>
-      <div className="max-h-60 space-y-2 overflow-y-auto text-sm">
+      <div className="grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3">
         {queue.length === 0 && <p className="text-slate-500">Queue is empty</p>}
         {queue.map((request, index) => (
           <div key={request.id} className="rounded-md border p-2">
