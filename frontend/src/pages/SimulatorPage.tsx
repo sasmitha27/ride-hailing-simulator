@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import toast from "react-hot-toast";
 import { QueuePanel } from "../components/QueuePanel";
 import { RequestForm } from "../components/RequestForm";
 import { StatsPanel } from "../components/StatsPanel";
@@ -26,7 +27,6 @@ const emptyState: SimulationState = {
 export function SimulatorPage(): JSX.Element {
   const [state, setState] = useState<SimulationState>(emptyState);
   const [latestEta, setLatestEta] = useState<number | null>(null);
-  const [uiMessage, setUiMessage] = useState<string>("");
   const [isAddingRequest, setIsAddingRequest] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
   const [pendingPickupLocation, setPendingPickupLocation] = useState<Coordinates | null>(null);
@@ -86,12 +86,14 @@ export function SimulatorPage(): JSX.Element {
     if (selectionMode === "pickup") {
       setPendingPickupLocation(coords);
       setSelectionMode(null);
+      toast.success(`Pickup location set: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
       return;
     }
 
     if (selectionMode === "destination") {
       setPendingDestinationLocation(coords);
       setSelectionMode(null);
+      toast.success(`Destination set: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
     }
   };
 
@@ -116,11 +118,6 @@ export function SimulatorPage(): JSX.Element {
           </div>
         )}
 
-        {uiMessage && (
-          <div className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700">
-            {uiMessage}
-          </div>
-        )}
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <SimulationMap
@@ -138,12 +135,19 @@ export function SimulatorPage(): JSX.Element {
               <RequestForm
               pickupLocation={pendingPickupLocation}
               destinationLocation={pendingDestinationLocation}
-              onPickPickup={() => setSelectionMode("pickup")}
-              onPickDestination={() => setSelectionMode("destination")}
+              onPickPickup={() => {
+                setSelectionMode("pickup");
+                toast("Click on the map to pick the passenger location.", { icon: "📍" });
+              }}
+              onPickDestination={() => {
+                setSelectionMode("destination");
+                toast("Click on the map to pick the destination.", { icon: "🏁" });
+              }}
               isSubmitting={isAddingRequest}
               onSubmit={async (payload) => {
                 setIsAddingRequest(true);
-                setUiMessage("");
+
+                const loadingId = toast.loading("Submitting ride request...");
 
                 try {
                   await addRideRequest(payload);
@@ -151,18 +155,14 @@ export function SimulatorPage(): JSX.Element {
                   setState(latest);
                   setPendingPickupLocation(null);
                   setPendingDestinationLocation(null);
-                  setUiMessage("Ride request added successfully.");
+                  toast.success("Ride request added successfully! A driver will be matched shortly.", { id: loadingId });
                 } catch (error) {
+                  let message = "Failed to add ride request. Ensure the backend is running on http://localhost:4000.";
                   if (axios.isAxiosError(error)) {
                     const backendMessage = (error.response?.data as { message?: string } | undefined)?.message;
-                    if (backendMessage) {
-                      setUiMessage(backendMessage);
-                    } else {
-                      setUiMessage("Failed to add ride request. Ensure backend API is running and reachable on http://localhost:4000.");
-                    }
-                  } else {
-                    setUiMessage("Failed to add ride request. Ensure backend API is running and reachable on http://localhost:4000.");
+                    if (backendMessage) message = backendMessage;
                   }
+                  toast.error(message, { id: loadingId, duration: 6000 });
                 } finally {
                   setIsAddingRequest(false);
                 }

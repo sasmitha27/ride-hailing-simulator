@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import toast from "react-hot-toast";
 
 type Coordinates = {
   lat: number;
@@ -33,7 +34,13 @@ export function RequestForm({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!pickupLocation || !destinationLocation) {
+    if (!pickupLocation) {
+      toast.error("Please pick a passenger location from the map first.");
+      return;
+    }
+
+    if (!destinationLocation) {
+      toast.error("Please pick a destination from the map first.");
       return;
     }
 
