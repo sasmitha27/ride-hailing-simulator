@@ -1,164 +1,246 @@
 # Ride-Hailing Driver Matching Simulator
 
-A web-based simulation demonstrating how a ride-hailing system matches passengers to drivers using classic data structures and algorithms.
+A full-stack simulation of a ride-hailing platform that demonstrates how data structures and algorithms are used to match passengers to drivers in real time.
 
----
+This project is especially suitable for coursework demonstrations because it clearly shows:
+- queueing and prioritization of requests,
+- shortest-path routing over a city graph,
+- greedy assignment decisions,
+- live event-driven state updates on a map.
 
-## Quick overview
+## Tech Stack
 
-- Backend: Node.js + Express + Socket.io (TypeScript)
-- Frontend: React + TypeScript + Vite
-- Database: PostgreSQL via Prisma
-- Purpose: simulate ride requests, match drivers, and stream driver movement in real time.
+- Backend: Node.js, Express, TypeScript, Prisma, Socket.io
+- Frontend: React, TypeScript, Vite, React-Leaflet
+- Database: PostgreSQL
 
----
+## Features
 
-## Key algorithms and data structures
+- Real-time simulation dashboard with map-based visualization
+- Driver and ride request management APIs
+- Priority request handling (VIP/urgent requests are served first)
+- Automatic customer request generation
+- Random background movement for available drivers (to simulate realistic dynamics)
+- Driver-to-passenger and passenger-to-destination movement animation
+- Live event stream using Socket.io
+- Validation rule: reject rides where pickup and destination are too close
 
-- **Weighted Graph** (`backend/src/algorithms/Graph.ts`) — adjacency list storing neighbor edges with weights.
-- **Dijkstra's shortest path** (`backend/src/algorithms/dijkstra.ts`) — finds shortest route between graph nodes; used to estimate driving distance along the city graph.
-- **Haversine distance & ETA** (`backend/src/algorithms/geo.ts`) — computes great-circle distance and converts to ETA using average speed.
-- **Priority Queue** (`backend/src/queue/PriorityQueue.ts`) — simple array-based priority queue used by Dijkstra and the request manager.
-- **FIFO Queue** (`backend/src/queue/Queue.ts`) — standard queue for normal requests.
-- **RideRequestManager** (`backend/src/queue/RideRequestManager.ts`) — combines priority + normal queues so priority requests are served first.
-- **Matching (Greedy)** (`backend/src/services/MatchingService.ts`) — filters nearby drivers using haversine distance, scores drivers using:
+## Algorithms Used
 
-  driver_score = route_distance_km + estimated_arrival_minutes
+### 1) Dijkstra's Shortest Path Algorithm
+Used to find the shortest route across a weighted city graph.
 
-  and picks the lowest score (greedy choice).
+Where it is used:
+- Driver -> passenger routing
+- Passenger pickup -> destination routing
 
----
+Why it is useful:
+- Produces realistic route-based distance instead of pure straight-line distance.
 
-## How the simulation works (high level)
+### 2) Greedy Matching Strategy
+After scoring candidate drivers, the system immediately selects the best current option.
 
-1. A passenger creates a ride request (API or auto-generator).
-2. Request is enqueued via `RideRequestManager` (priority requests first).
-3. The `SimulationEngine` processes the queue, finds available drivers, and calls `MatchingService`.
-4. `MatchingService` filters drivers by radius, computes shortest path with Dijkstra, estimates ETA, scores drivers and returns the best candidate.
-5. Driver is assigned (status -> `busy`) and `SimulationEngine` simulates movement along the graph path, emitting events over Socket.io: `ride:assigned`, `driver:moved`, `ride:picked_up`, `ride:completed`.
-6. On completion, the ride and driver states are updated in the DB and the queue is reprocessed.
+Scoring formula used:
 
----
+score = routeDistanceKm + etaMinutes
 
-## Important files (quick links)
+Where:
+- routeDistanceKm is computed from shortest path on graph
+- etaMinutes is derived from route distance and average speed
 
-- `backend/src/algorithms/dijkstra.ts`
-- `backend/src/algorithms/Graph.ts`
-- `backend/src/algorithms/cityGraph.ts`
-- `backend/src/algorithms/geo.ts`
-- `backend/src/services/MatchingService.ts`
-- `backend/src/services/SimulationEngine.ts`
-- `backend/src/queue/PriorityQueue.ts`
-- `backend/src/queue/Queue.ts`
-- `backend/src/queue/RideRequestManager.ts`
+Why it is useful:
+- Fast and practical for real-time dispatch decisions.
 
----
+### 3) Haversine Distance
+Used for geographic (great-circle) distance between latitude/longitude coordinates.
 
-## Getting started (development)
+Where it is used:
+- Filtering nearby drivers within a search radius
+- Ride validation constraints
+- Final ride distance estimation
 
-Prerequisites:
+## Data Structures Used
+
+### 1) Weighted Graph (Adjacency List)
+Represents city nodes and weighted edges.
+
+- Efficient neighbor lookup for shortest-path calculations
+- Supports bidirectional edges with travel weights
+
+### 2) Priority Queue
+Used in two places:
+- Dijkstra frontier (lowest known cost first)
+- Priority ride requests (VIP requests dequeued before normal)
+
+Current implementation detail:
+- Array-based priority insertion (sufficient for coursework-scale simulation)
+
+### 3) FIFO Queue
+Stores normal ride requests in arrival order.
+
+Why it is useful:
+- Fair processing for non-priority requests.
+
+### 4) Hybrid Queue Manager
+A custom RideRequestManager combines:
+- priority queue + normal queue
+
+Behavior:
+- Serve all priority requests first
+- Then continue FIFO for normal requests
+
+## Useful New/Advanced Implementation Features
+
+These are practical enhancements beyond a basic CRUD demo:
+
+1. Real-time Event-Driven Architecture
+- The backend emits live events such as:
+  - simulation:state
+  - queue:updated
+  - ride:assigned
+  - driver:moved
+  - ride:picked_up
+  - ride:completed
+- Frontend subscribes and updates UI immediately without manual refresh.
+
+2. Queue Hold + Batch Processing Behavior
+- A configurable delay before queue processing helps gather incoming requests.
+- Improves simulation realism and demonstrates scheduling behavior.
+
+3. Automatic Request Generator
+- Periodically creates requests from seeded customers.
+- Useful for stress-testing matching logic without manual input.
+
+4. Background Driver Drift
+- Available drivers move slightly over time.
+- Demonstrates how dynamic positions affect assignment outcomes.
+
+5. Safety Validation for Ride Requests
+- Rejects requests below minimum pickup-destination distance.
+- Prevents meaningless test data and improves simulation quality.
+
+6. Configurable Simulation Parameters
+- Key behavior can be tuned using environment variables (speed, radius, intervals, animation timings).
+- Useful for experimentation and performance demonstrations in lectures.
+
+## Project Structure (Main Parts)
+
+- backend/: API server, matching logic, queueing, simulation engine, Prisma
+- frontend/: React simulator UI and map visualization
+- backend/src/algorithms/: graph, Dijkstra, geo utilities
+- backend/src/queue/: queue data structures and request manager
+- backend/src/services/: matching and simulation orchestration
+
+## How to Run (Local Development)
+
+### Prerequisites
+
 - Node.js 18+
+- npm 9+
 - PostgreSQL 14+
 
-1. Install project dependencies (from repository root):
+### 1) Install Dependencies
+
+From project root:
 
 ```bash
 npm install
+npm run install:all
 ```
 
-2. Backend setup
+### 2) Configure Backend Environment
 
 ```bash
 cd backend
 cp .env.example .env
-# edit .env to set DATABASE_URL and optional settings
-npm install
+```
+
+Edit backend/.env if needed:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ride_hailing_simulator?schema=public"
+PORT=4000
+AVERAGE_SPEED_KMH=30
+DRIVER_SEARCH_RADIUS_KM=5
+```
+
+Optional advanced tuning variables supported by the simulator engine:
+
+```env
+AUTO_REQUEST_BATCH_SIZE=2
+AUTO_REQUEST_INTERVAL_MS=10000
+QUEUE_HOLD_BEFORE_PROCESSING_MS=3000
+DRIVER_ANIMATION_MIN_MS=10000
+DRIVER_ANIMATION_MAX_MS=25000
+```
+
+### 3) Initialize Database
+
+From backend directory:
+
+```bash
 npm run prisma:generate
 npm run prisma:migrate -- --name init
 npm run prisma:seed
-npm run dev
 ```
 
-Environment variables used by the simulator (examples in `backend/.env`):
+### 4) Start Backend
 
-- `DATABASE_URL` — Postgres connection string
-- `AVERAGE_SPEED_KMH` — average driver speed for ETA (default 30)
-- `DRIVER_SEARCH_RADIUS_KM` — search radius for nearby drivers (default 5)
-- `AUTO_REQUEST_BATCH_SIZE`, `AUTO_REQUEST_INTERVAL_MS` — auto request generator settings
-
-3. Frontend setup (from repository root):
+From project root:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+npm run dev:backend
 ```
 
-Open `http://localhost:5173` and ensure backend is running (default: `http://localhost:4000`).
+Backend runs at:
+- http://localhost:4000
 
----
+### 5) Start Frontend
 
-## Runtime events (Socket.io)
-
-- `simulation:state` — full snapshot of simulation
-- `queue:updated` — current queue contents
-- `ride:assigned` — a ride was assigned to a driver
-- `driver:moved` — driver position update
-- `ride:picked_up` — passenger picked up
-- `ride:completed` — ride completed
-
----
-
-## Notes, limitations & suggestions
-
-- The graph is a simplified city graph (`backend/src/algorithms/cityGraph.ts`) with a small set of nodes used for demonstration; Dijkstra runs on this graph rather than on raw lat/lng.
-- Matching is **greedy** (locally optimal) and may not be globally optimal for fleet-wide objectives — consider a global assignment (Hungarian algorithm / min-cost flow) for production.
-- Priority queue implementation is array-based and acceptable for small sizes; switch to a binary heap for better performance on larger graphs/queues.
-
----
-
-If you'd like, I can:
-
-- Add a short section explaining algorithmic complexity for each algorithm.
-- Produce a diagram of the simulation flow.
-- Add quick `curl` examples for key API endpoints.
-
-Enjoy exploring the simulator!
+In another terminal from project root:
 
 ```bash
 npm run dev:frontend
 ```
 
-Open `http://localhost:5173`.
+Frontend runs at:
+- http://localhost:5173
 
-## Real-Time Event Channels (Socket.io)
+## Core API Endpoints
 
-- `simulation:state`
-- `queue:updated`
-- `ride:assigned`
-- `driver:moved`
-- `ride:picked_up`
-- `ride:completed`
+- GET /health
+- GET /drivers
+- POST /drivers
+- GET /customers
+- GET /rides
+- GET /requests
+- POST /requests
+- GET /simulation/state
+- POST /simulation/process
 
-## Visual Legend
+## Demo Flow for Lecture
 
-- Blue circular car icon: Driver
-- Green marker: Passenger pickup
-- Red marker: Destination
+1. Start backend + frontend.
+2. Open simulator dashboard in browser.
+3. Add a few normal requests.
+4. Add a priority request and show queue precedence.
+5. Explain shortest-path and greedy score during assignment.
+6. Show live driver movement and ride lifecycle events.
+7. Discuss trade-off: greedy local optimum vs global optimization.
 
-## Example Dataset
+## Academic Notes (Complexity Discussion)
 
-- JSON dataset: `backend/src/data/example-dataset.json`
-- Prisma seed script: `backend/src/data/seed.ts`
+- Dijkstra with current array-priority queue behaves approximately O(V^2 + E) in this implementation context.
+- A binary-heap priority queue could improve asymptotic performance for larger graphs.
+- Current design is intentionally readable and demonstrable for coursework.
 
-## Academic Presentation Notes
+## Future Improvements
 
-This project can be demonstrated as:
+- Replace array priority queue with binary heap
+- Add global assignment optimization (Hungarian / min-cost flow)
+- Add surge-pricing or driver rating weight into score
+- Add simulation replay + analytics charts
 
-- Queueing behavior under normal and VIP load
-- Graph shortest path effect on ETA
-- Greedy driver selection tradeoffs
-- Real-time simulation of system state transitions
+## License
 
-To highlight algorithmic behavior, submit multiple normal requests, then add a VIP request and observe immediate queue precedence and assignment.
->>>>>>> cd3e93e (first commit)
+For educational/coursework use.
