@@ -6,7 +6,7 @@ import { RequestForm } from "../components/RequestForm";
 import { StatsPanel } from "../components/StatsPanel";
 import { SimulationMap } from "../map/SimulationMap";
 import NavBar from "../components/NavBar";
-import { addRideRequest, fetchSimulationState } from "../simulation/api";
+import { addRideRequest, fetchSimulationState, resetSimulation } from "../simulation/api";
 import { getSocket } from "../simulation/socket";
 import { MatchingInsight, SimulationState } from "../simulation/types";
 
@@ -30,6 +30,7 @@ export function SimulatorPage(): JSX.Element {
   const [matchingInsight, setMatchingInsight] = useState<MatchingInsight | null>(null);
   const [connectionError, setConnectionError] = useState(false);
   const [isAddingRequest, setIsAddingRequest] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
   const [pendingPickupLocation, setPendingPickupLocation] = useState<Coordinates | null>(null);
   const [pendingDestinationLocation, setPendingDestinationLocation] = useState<Coordinates | null>(null);
@@ -125,7 +126,33 @@ export function SimulatorPage(): JSX.Element {
               <div className="rounded-full bg-white p-2 text-sea font-extrabold text-xl shadow-sm">H</div>
               <div className="text-white text-2xl font-bold">hailrider</div>
             </div>
-            <NavBar />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.confirm("Clear all ride requests and ride history, then make every driver available?")) return;
+                  setIsResetting(true);
+                  try {
+                    await resetSimulation();
+                    setState(await fetchSimulationState());
+                    setLatestEta(null);
+                    setMatchingInsight(null);
+                    setPendingPickupLocation(null);
+                    setPendingDestinationLocation(null);
+                    toast.success("Simulation cleared. Drivers are ready for a new demonstration.");
+                  } catch {
+                    toast.error("Could not reset the simulation. Check that the backend is running.");
+                  } finally {
+                    setIsResetting(false);
+                  }
+                }}
+                disabled={isResetting}
+                className="rounded-md border border-white/30 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isResetting ? "Clearing…" : "Clear demo"}
+              </button>
+              <NavBar />
+            </div>
           </div>
         </header>
 

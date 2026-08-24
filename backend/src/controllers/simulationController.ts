@@ -11,6 +11,11 @@ export function createSimulationController(engine: SimulationEngine) {
     processQueue: async (_req: Request, res: Response): Promise<void> => {
       await engine.processQueue();
       res.json({ message: "Queue processing triggered" });
+    },
+
+    reset: async (_req: Request, res: Response): Promise<void> => {
+      await engine.reset();
+      res.json({ message: "Simulation reset: ride requests and rides cleared; drivers are available." });
     }
   };
 }

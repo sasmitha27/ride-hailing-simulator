@@ -23,6 +23,8 @@ export class SimulationEngine {
   private randomMoverStarted = false;
   private autoRequesterStarted = false;
   private processQueueTimeout: NodeJS.Timeout | null = null;
+  private resetting = false;
+  private simulationVersion = 0;
 
   constructor(private readonly io: SocketIOServer) {}
 
@@ -109,7 +111,7 @@ export class SimulationEngine {
   }
 
   private scheduleQueueProcessing(): void {
-    if (this.processing || this.processQueueTimeout) {
+    if (this.resetting || this.processing || this.processQueueTimeout) {
       return;
     }
 
@@ -127,7 +129,7 @@ export class SimulationEngine {
       this.processQueueTimeout = null;
     }
 
-    if (this.processing) {
+    if (this.processing || this.resetting) {
       return;
     }
 
@@ -135,6 +137,7 @@ export class SimulationEngine {
     // Attempt every request that was queued when processing began. A request
     // with no nearby driver is rotated within its queue instead of blocking
     // later requests that may be matchable elsewhere in the city.
+    const version = this.simulationVersion;
     const requestsToAttempt = this.requestManager.toArray().length;
     const attemptBatch = [];
     for (let index = 0; index < requestsToAttempt; index += 1) {
@@ -145,6 +148,7 @@ export class SimulationEngine {
 
     try {
       for (let attempt = 0; attempt < attemptBatch.length; attempt += 1) {
+        if (this.resetting || version !== this.simulationVersion) break;
         const request = attemptBatch[attempt];
         try {
           const availableDrivers = await prisma.driver.findMany({
@@ -202,7 +206,7 @@ export class SimulationEngine {
             }
           });
 
-          this.simulateDriverJourney(ride.id, best.routePath, best.driver.id).catch((error) => {
+          this.simulateDriverJourney(ride.id, best.routePath, best.driver.id, version).catch((error) => {
             console.error("Failed to simulate ride", error);
           });
         } catch (error) {
@@ -213,8 +217,10 @@ export class SimulationEngine {
         }
       }
     } finally {
-      for (const request of deferredRequests) {
-        this.requestManager.enqueue(request);
+      if (!this.resetting && version === this.simulationVersion) {
+        for (const request of deferredRequests) {
+          this.requestManager.enqueue(request);
+        }
       }
       this.io.emit("queue:updated", this.requestManager.toArray());
       this.processing = false;
@@ -238,6 +244,33 @@ export class SimulationEngine {
       rides,
       queue: this.requestManager.toArray()
     };
+  }
+
+  /** Clear ride activity while keeping seeded drivers and customers for a fresh demo. */
+  async reset(): Promise<void> {
+    this.resetting = true;
+    this.simulationVersion += 1;
+
+    if (this.processQueueTimeout) {
+      clearTimeout(this.processQueueTimeout);
+      this.processQueueTimeout = null;
+    }
+
+    // Let an already-started queue transaction finish before removing its data.
+    while (this.processing) {
+      await delay(25);
+    }
+
+    this.requestManager = new RideRequestManager();
+    await prisma.$transaction([
+      prisma.ride.deleteMany(),
+      prisma.rideRequest.deleteMany(),
+      prisma.driver.updateMany({ data: { status: "available" } })
+    ]);
+
+    this.resetting = false;
+    this.io.emit("queue:updated", []);
+    this.io.emit("simulation:state", await this.getSimulationState());
   }
 
   private async generateCustomerRideRequests(batchSize: number): Promise<void> {
@@ -320,7 +353,8 @@ export class SimulationEngine {
     }
   }
 
-  private async simulateDriverJourney(rideId: number, path: string[], driverId: number): Promise<void> {
+  private async simulateDriverJourney(rideId: number, path: string[], driverId: number, version: number): Promise<void> {
+    if (version !== this.simulationVersion) return;
     await prisma.ride.update({
       where: { id: rideId },
       data: { status: "to_pickup" }
@@ -331,6 +365,7 @@ export class SimulationEngine {
       const stepMs = Math.max(200, Math.floor(totalMs / path.length));
 
       for (const node of path) {
+        if (version !== this.simulationVersion) return;
         const coords = CITY_NODES[node];
         await prisma.driver.update({
           where: { id: driverId },
@@ -350,6 +385,8 @@ export class SimulationEngine {
         await delay(stepMs);
       }
     }
+
+    if (version !== this.simulationVersion) return;
 
     const rideAtPickup = await prisma.ride.findUniqueOrThrow({ where: { id: rideId } });
     await prisma.$transaction([
@@ -391,6 +428,7 @@ export class SimulationEngine {
         const stepMs = Math.max(200, Math.floor(totalMs / destinationPath.length));
 
         for (const node of destinationPath) {
+          if (version !== this.simulationVersion) return;
           const coords = CITY_NODES[node];
           await prisma.driver.update({
             where: { id: driverId },
@@ -411,6 +449,8 @@ export class SimulationEngine {
           await delay(stepMs);
         }
       }
+
+      if (version !== this.simulationVersion) return;
     }
 
     await prisma.$transaction(async (tx: Prisma.TransactionClient) => {

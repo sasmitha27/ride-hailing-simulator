@@ -21,7 +21,6 @@ This project is especially suitable for coursework demonstrations because it cle
 - Highlighted route for the latest driver-to-passenger match
 - Driver and ride request management APIs
 - Priority request handling (VIP/urgent requests are served first)
-- Automatic customer request generation
 - Random background movement for available drivers (to simulate realistic dynamics)
 - Driver-to-passenger and passenger-to-destination movement animation
 - Live event stream using Socket.io
@@ -110,19 +109,15 @@ These are practical enhancements beyond a basic CRUD demo:
 - A configurable delay before queue processing helps gather incoming requests.
 - Improves simulation realism and demonstrates scheduling behavior.
 
-3. Automatic Request Generator
-- Periodically creates requests from seeded customers.
-- Useful for stress-testing matching logic without manual input.
-
-4. Background Driver Drift
+3. Background Driver Drift
 - Available drivers move slightly over time.
 - Demonstrates how dynamic positions affect assignment outcomes.
 
-5. Safety Validation for Ride Requests
+4. Safety Validation for Ride Requests
 - Rejects requests below minimum pickup-destination distance.
 - Prevents meaningless test data and improves simulation quality.
 
-6. Configurable Simulation Parameters
+5. Configurable Simulation Parameters
 - Key behavior can be tuned using environment variables (speed, radius, intervals, animation timings).
 - Useful for experimentation and performance demonstrations in lectures.
 
@@ -170,8 +165,6 @@ DRIVER_SEARCH_RADIUS_KM=5
 Optional advanced tuning variables supported by the simulator engine:
 
 ```env
-AUTO_REQUEST_BATCH_SIZE=2
-AUTO_REQUEST_INTERVAL_MS=10000
 QUEUE_HOLD_BEFORE_PROCESSING_MS=3000
 DRIVER_ANIMATION_MIN_MS=10000
 DRIVER_ANIMATION_MAX_MS=25000
@@ -220,6 +213,7 @@ Frontend runs at:
 - POST /requests
 - GET /simulation/state
 - POST /simulation/process
+- POST /simulation/reset
 
 ## Demo Flow for Lecture
 

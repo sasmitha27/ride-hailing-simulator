@@ -31,6 +31,10 @@ export async function triggerQueueProcessing(): Promise<void> {
   await axios.post(`${API_BASE}/simulation/process`);
 }
 
+export async function resetSimulation(): Promise<void> {
+  await axios.post(`${API_BASE}/simulation/reset`);
+}
+
 export async function fetchCustomers(): Promise<Array<{ id: number; name: string; latitude: number; longitude: number }>> {
   const res = await axios.get(`${API_BASE}/customers`);
   return res.data;

@@ -8,6 +8,7 @@ export function simulationRouter(engine: SimulationEngine): Router {
 
   router.get("/state", controller.state);
   router.post("/process", controller.processQueue);
+  router.post("/reset", controller.reset);
 
   return router;
 }

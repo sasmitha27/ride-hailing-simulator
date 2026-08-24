@@ -26,7 +26,6 @@ async function bootstrap(): Promise<void> {
   const engine = new SimulationEngine(io);
   await engine.bootstrapQueues();
   engine.startRandomDriverMovement(5, 2000);
-  engine.startAutomaticCustomerRequests();
 
   app.get("/health", (_req, res) => {
     res.json({ status: "ok" });
