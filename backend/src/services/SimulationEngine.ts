@@ -91,6 +91,9 @@ export class SimulationEngine {
     // emit initial queue state so connected clients receive it immediately
     this.io.emit("queue:updated", this.requestManager.toArray());
     console.log(`Bootstrap: enqueued ${this.requestManager.toArray().length} pending ride request(s)`);
+    if (pending.length > 0) {
+      this.scheduleQueueProcessing();
+    }
   }
 
   async enqueueRequest(requestId: number): Promise<void> {
@@ -129,66 +132,93 @@ export class SimulationEngine {
     }
 
     this.processing = true;
-
-    while (!this.requestManager.isEmpty()) {
+    // Attempt every request that was queued when processing began. A request
+    // with no nearby driver is rotated within its queue instead of blocking
+    // later requests that may be matchable elsewhere in the city.
+    const requestsToAttempt = this.requestManager.toArray().length;
+    const attemptBatch = [];
+    for (let index = 0; index < requestsToAttempt; index += 1) {
       const request = this.requestManager.dequeue();
-      if (!request) {
-        break;
-      }
-
-      const availableDrivers = await prisma.driver.findMany({
-        where: { status: "available" }
-      });
-
-      const best = this.matcher.greedyMatch(availableDrivers, request);
-
-      if (!best) {
-        this.requestManager.enqueue(request);
-        break;
-      }
-
-      const ride = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        await tx.driver.update({
-          where: { id: best.driver.id },
-          data: { status: "busy" }
-        });
-
-        await tx.rideRequest.update({
-          where: { id: request.id },
-          data: { status: "matched" }
-        });
-
-        return tx.ride.create({
-          data: {
-            driverId: best.driver.id,
-            requestId: request.id,
-            distance: best.routeDistanceKm,
-            status: "assigned"
-          },
-          include: {
-            driver: true,
-            request: true
-          }
-        });
-      });
-
-      this.io.emit("ride:assigned", {
-        ride,
-        etaMinutes: best.etaMinutes,
-        routePath: best.routePath,
-        algorithm: {
-          strategy: "Greedy nearest-driver",
-          scoreFormula: "distance_to_passenger + estimated_arrival_time"
-        }
-      });
-
-      this.simulateDriverJourney(ride.id, best.routePath, best.driver.id).catch((error) => {
-        console.error("Failed to simulate ride", error);
-      });
+      if (request) attemptBatch.push(request);
     }
+    const deferredRequests: typeof attemptBatch = [];
 
-    this.io.emit("queue:updated", this.requestManager.toArray());
-    this.processing = false;
+    try {
+      for (let attempt = 0; attempt < attemptBatch.length; attempt += 1) {
+        const request = attemptBatch[attempt];
+        try {
+          const availableDrivers = await prisma.driver.findMany({
+            where: { status: "available" }
+          });
+          const nearbyDrivers = this.matcher.findNearbyDrivers(availableDrivers, request);
+          const scoredDrivers = this.matcher.scoreDrivers(nearbyDrivers, request);
+          const best = scoredDrivers[0] ?? null;
+
+          if (!best) {
+            deferredRequests.push(request);
+            continue;
+          }
+
+          const ride = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            await tx.driver.update({
+              where: { id: best.driver.id },
+              data: { status: "busy" }
+            });
+
+            await tx.rideRequest.update({
+              where: { id: request.id },
+              data: { status: "matched" }
+            });
+
+            return tx.ride.create({
+              data: {
+                driverId: best.driver.id,
+                requestId: request.id,
+                distance: best.routeDistanceKm,
+                status: "assigned"
+              },
+              include: {
+                driver: true,
+                request: true
+              }
+            });
+          });
+
+          this.io.emit("ride:assigned", {
+            ride,
+            etaMinutes: best.etaMinutes,
+            routeDistanceKm: best.routeDistanceKm,
+            routePath: best.routePath,
+            routeCoordinates: [
+              { lat: best.driver.latitude, lng: best.driver.longitude },
+              ...best.routePath.map((node) => CITY_NODES[node]),
+              { lat: request.passengerLat, lng: request.passengerLng }
+            ],
+            algorithm: {
+              strategy: "Greedy minimum-ETA matching",
+              scoreFormula: "minimum ETA; driver rating and ID break ties",
+              availableDrivers: availableDrivers.length,
+              candidatesInRadius: scoredDrivers.length
+            }
+          });
+
+          this.simulateDriverJourney(ride.id, best.routePath, best.driver.id).catch((error) => {
+            console.error("Failed to simulate ride", error);
+          });
+        } catch (error) {
+          // Preserve the failed and not-yet-attempted requests. Completed
+          // transactions stay removed from the queue.
+          deferredRequests.push(request, ...attemptBatch.slice(attempt + 1));
+          throw error;
+        }
+      }
+    } finally {
+      for (const request of deferredRequests) {
+        this.requestManager.enqueue(request);
+      }
+      this.io.emit("queue:updated", this.requestManager.toArray());
+      this.processing = false;
+    }
   }
 
   async getSimulationState(): Promise<unknown> {
@@ -321,10 +351,17 @@ export class SimulationEngine {
       }
     }
 
-    await prisma.ride.update({
-      where: { id: rideId },
-      data: { status: "picked_up", startTime: new Date() }
-    });
+    const rideAtPickup = await prisma.ride.findUniqueOrThrow({ where: { id: rideId } });
+    await prisma.$transaction([
+      prisma.ride.update({
+        where: { id: rideId },
+        data: { status: "picked_up", startTime: new Date() }
+      }),
+      prisma.rideRequest.update({
+        where: { id: rideAtPickup.requestId },
+        data: { status: "picked_up" }
+      })
+    ]);
 
     this.io.emit("ride:picked_up", { rideId, driverId });
 
@@ -386,7 +423,7 @@ export class SimulationEngine {
         return;
       }
 
-      const rideDistance = haversineDistanceKm(
+      const rideDistance = graphRouteDistanceKm(
         { lat: ride.request.passengerLat, lng: ride.request.passengerLng },
         { lat: ride.request.destinationLat, lng: ride.request.destinationLng }
       );
@@ -423,6 +460,22 @@ export class SimulationEngine {
 function randomGraphNodeDifferentFrom(node: string): string {
   const keys = Object.keys(CITY_NODES).filter((key) => key !== node);
   return keys[Math.floor(Math.random() * keys.length)] ?? node;
+}
+
+function graphRouteDistanceKm(start: { lat: number; lng: number }, end: { lat: number; lng: number }): number {
+  const startNode = nearestGraphNode(start);
+  const endNode = nearestGraphNode(end);
+  const graphDistance = dijkstra(cityGraph, startNode, endNode).distance;
+
+  if (!Number.isFinite(graphDistance)) {
+    return haversineDistanceKm(start, end);
+  }
+
+  return (
+    haversineDistanceKm(start, CITY_NODES[startNode]) +
+    graphDistance +
+    haversineDistanceKm(CITY_NODES[endNode], end)
+  );
 }
 
 function delay(ms: number): Promise<void> {

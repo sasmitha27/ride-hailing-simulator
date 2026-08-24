@@ -17,12 +17,10 @@ export function createRequestController(engine: SimulationEngine) {
       } = req.body;
 
       if (
-        typeof passengerLat !== "number" ||
-        typeof passengerLng !== "number" ||
-        typeof destinationLat !== "number" ||
-        typeof destinationLng !== "number"
+        !isValidCoordinates(passengerLat, passengerLng) ||
+        !isValidCoordinates(destinationLat, destinationLng)
       ) {
-        res.status(400).json({ message: "Passenger and destination coordinates are required" });
+        res.status(400).json({ message: "Valid passenger and destination coordinates are required" });
         return;
       }
 
@@ -58,4 +56,9 @@ export function createRequestController(engine: SimulationEngine) {
       res.json(requests);
     }
   };
+}
+
+function isValidCoordinates(latitude: unknown, longitude: unknown): boolean {
+  return typeof latitude === "number" && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 &&
+    typeof longitude === "number" && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
 }

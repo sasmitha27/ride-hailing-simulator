@@ -27,6 +27,7 @@ export function DriversPage(): JSX.Element {
     if (selectionMode === "driver") {
       setPendingDriverLocation(coords);
       setSelectionMode(null);
+      setShowAddModal(true);
     }
   };
 
@@ -197,7 +198,6 @@ export function DriversPage(): JSX.Element {
                 onPickLocation={() => {
                   setSelectionMode("driver");
                   setShowAddModal(false);
-                  setTimeout(() => setShowAddModal(true), 300);
                 }}
                 isSubmitting={isAdding}
                 onSubmit={async (payload) => {
@@ -211,7 +211,7 @@ export function DriversPage(): JSX.Element {
                     setUiMessage("Driver added successfully.");
                     setShowAddModal(false);
                   } catch {
-                    setUiMessage("Failed to add driver. Ensure backend is running on http://localhost:4000.");
+                    setUiMessage("Failed to add driver. Ensure the simulator API is running.");
                   } finally {
                     setIsAdding(false);
                   }

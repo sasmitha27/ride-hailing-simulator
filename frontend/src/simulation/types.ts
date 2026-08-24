@@ -66,3 +66,15 @@ export interface RideSummary {
   tripStartedAt: string | null;
   tripEndedAt: string | null;
 }
+
+export interface MatchingInsight {
+  requestId: number;
+  driverId: number;
+  driverName: string;
+  etaMinutes: number;
+  routeDistanceKm: number;
+  routePath: string[];
+  routeCoordinates: Array<{ lat: number; lng: number }>;
+  availableDrivers: number;
+  candidatesInRadius: number;
+}

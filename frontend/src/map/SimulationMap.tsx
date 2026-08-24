@@ -1,5 +1,5 @@
 import { DivIcon } from "leaflet";
-import { MapContainer, Marker, Popup, TileLayer, useMapEvents } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Fragment } from "react";
 import { Driver, RideRequest } from "../simulation/types";
@@ -18,6 +18,7 @@ interface SimulationMapProps {
   pendingDriverLocation: Coordinates | null;
   pendingPickupLocation: Coordinates | null;
   pendingDestinationLocation: Coordinates | null;
+  highlightedRoute?: Coordinates[];
   onMapPick: (coords: Coordinates) => void;
 }
 
@@ -52,6 +53,7 @@ export function SimulationMap({
   pendingDriverLocation,
   pendingPickupLocation,
   pendingDestinationLocation,
+  highlightedRoute = [],
   onMapPick
 }: SimulationMapProps): JSX.Element {
   // Colombo district approximate bounding box
@@ -83,6 +85,13 @@ export function SimulationMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {highlightedRoute.length > 1 && (
+          <Polyline
+            positions={highlightedRoute.map((point) => [point.lat, point.lng])}
+            pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.8, dashArray: "10 8" }}
+          />
+        )}
 
         {drivers.map((driver) => (
           <Marker key={driver.id} position={[driver.latitude, driver.longitude]} icon={carIcon}>

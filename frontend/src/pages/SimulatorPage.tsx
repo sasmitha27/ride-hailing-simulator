@@ -8,7 +8,7 @@ import { SimulationMap } from "../map/SimulationMap";
 import NavBar from "../components/NavBar";
 import { addRideRequest, fetchSimulationState } from "../simulation/api";
 import { getSocket } from "../simulation/socket";
-import { SimulationState } from "../simulation/types";
+import { MatchingInsight, SimulationState } from "../simulation/types";
 
 type Coordinates = {
   lat: number;
@@ -27,18 +27,26 @@ const emptyState: SimulationState = {
 export function SimulatorPage(): JSX.Element {
   const [state, setState] = useState<SimulationState>(emptyState);
   const [latestEta, setLatestEta] = useState<number | null>(null);
+  const [matchingInsight, setMatchingInsight] = useState<MatchingInsight | null>(null);
+  const [connectionError, setConnectionError] = useState(false);
   const [isAddingRequest, setIsAddingRequest] = useState(false);
   const [selectionMode, setSelectionMode] = useState<SelectionMode>(null);
   const [pendingPickupLocation, setPendingPickupLocation] = useState<Coordinates | null>(null);
   const [pendingDestinationLocation, setPendingDestinationLocation] = useState<Coordinates | null>(null);
 
   useEffect(() => {
-    fetchSimulationState().then(setState).catch(console.error);
+    fetchSimulationState()
+      .then((snapshot) => {
+        setState(snapshot);
+        setConnectionError(false);
+      })
+      .catch(() => setConnectionError(true));
 
     const socket = getSocket();
 
     socket.on("simulation:state", (snapshot: SimulationState) => {
       setState(snapshot);
+      setConnectionError(false);
     });
 
     socket.on("queue:updated", (queue) => {
@@ -47,6 +55,17 @@ export function SimulatorPage(): JSX.Element {
 
     socket.on("ride:assigned", (payload) => {
       setLatestEta(payload.etaMinutes);
+      setMatchingInsight({
+        requestId: payload.ride.requestId,
+        driverId: payload.ride.driver.id,
+        driverName: payload.ride.driver.name,
+        etaMinutes: payload.etaMinutes,
+        routeDistanceKm: payload.routeDistanceKm,
+        routePath: payload.routePath,
+        routeCoordinates: payload.routeCoordinates,
+        availableDrivers: payload.algorithm.availableDrivers,
+        candidatesInRadius: payload.algorithm.candidatesInRadius
+      });
       fetchSimulationState().then(setState).catch(console.error);
     });
 
@@ -118,6 +137,12 @@ export function SimulatorPage(): JSX.Element {
           </div>
         )}
 
+        {connectionError && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            The simulator API is unavailable. Start the backend on port 4000, then refresh this page.
+          </div>
+        )}
+
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <SimulationMap
@@ -127,6 +152,7 @@ export function SimulatorPage(): JSX.Element {
             pendingDriverLocation={null}
             pendingPickupLocation={pendingPickupLocation}
             pendingDestinationLocation={pendingDestinationLocation}
+            highlightedRoute={matchingInsight?.routeCoordinates}
             onMapPick={handleMapPick}
           />
 
@@ -157,7 +183,7 @@ export function SimulatorPage(): JSX.Element {
                   setPendingDestinationLocation(null);
                   toast.success("Ride request added successfully! A driver will be matched shortly.", { id: loadingId });
                 } catch (error) {
-                  let message = "Failed to add ride request. Ensure the backend is running on http://localhost:4000.";
+                  let message = "Failed to add ride request. Ensure the simulator API is running.";
                   if (axios.isAxiosError(error)) {
                     const backendMessage = (error.response?.data as { message?: string } | undefined)?.message;
                     if (backendMessage) message = backendMessage;
@@ -174,8 +200,40 @@ export function SimulatorPage(): JSX.Element {
 
         <QueuePanel queue={state.queue} />
 
-
+        <section className="rounded-xl border border-blue-200 bg-white/90 p-4 shadow-sm" aria-live="polite">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Algorithm trace</p>
+              <h3 className="mt-1 text-lg font-semibold text-ink">Latest greedy driver match</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                {matchingInsight
+                  ? `Request #${matchingInsight.requestId} matched with ${matchingInsight.driverName} (#${matchingInsight.driverId}).`
+                  : "Add a request to see Dijkstra routing and the greedy selection result."}
+              </p>
+            </div>
+            {matchingInsight && (
+              <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                <TraceValue label="Candidates" value={`${matchingInsight.candidatesInRadius}/${matchingInsight.availableDrivers}`} />
+                <TraceValue label="Route" value={`${matchingInsight.routeDistanceKm.toFixed(2)} km`} />
+                <TraceValue label="ETA" value={`${matchingInsight.etaMinutes.toFixed(1)} min`} />
+                <TraceValue label="Dijkstra path" value={matchingInsight.routePath.join(" → ") || "Direct"} />
+              </div>
+            )}
+          </div>
+          <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+            Priority queue chooses the next request; Dijkstra finds each candidate route; greedy selection chooses the minimum ETA (rating breaks ties).
+          </p>
+        </section>
       </div>
+    </div>
+  );
+}
+
+function TraceValue({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className="min-w-[110px] rounded-lg bg-blue-50 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">{label}</p>
+      <p className="mt-0.5 font-semibold text-slate-900">{value}</p>
     </div>
   );
 }

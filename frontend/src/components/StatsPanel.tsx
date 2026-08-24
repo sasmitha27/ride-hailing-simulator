@@ -12,7 +12,7 @@ export function StatsPanel({ drivers, requests, rides, currentEta }: StatsPanelP
   const busy = drivers.length - available;
 
   return (
-    <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-300/60 bg-white/80 p-4 shadow-sm backdrop-blur md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-300/60 bg-white/80 p-4 shadow-sm backdrop-blur md:grid-cols-3 xl:grid-cols-6">
       <Stat title="Available Drivers" value={String(available)} />
       <Stat title="Busy Drivers" value={String(busy)} />
       <Stat title="Waiting Requests" value={String(requests.filter((r) => r.status === "waiting").length)} />

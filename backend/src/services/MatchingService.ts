@@ -1,6 +1,6 @@
 import { Driver, DriverScore, RideRequest } from "../types/models";
 import { dijkstra } from "../algorithms/dijkstra";
-import { buildCityGraph, nearestGraphNode } from "../algorithms/cityGraph";
+import { buildCityGraph, CITY_NODES, nearestGraphNode } from "../algorithms/cityGraph";
 import { etaMinutes, haversineDistanceKm } from "../algorithms/geo";
 
 const cityGraph = buildCityGraph();
@@ -34,9 +34,20 @@ export class MatchingService {
           return null;
         }
 
-        const routeDistanceKm = pathResult.distance;
+        // Include the first/last-mile links to the graph. Otherwise, drivers
+        // near the same node incorrectly receive an identical ETA.
+        const routeDistanceKm =
+          haversineDistanceKm(
+            { lat: driver.latitude, lng: driver.longitude },
+            CITY_NODES[driverNode]
+          ) +
+          pathResult.distance +
+          haversineDistanceKm(
+            CITY_NODES[passengerNode],
+            { lat: request.passengerLat, lng: request.passengerLng }
+          );
         const arrivalMinutes = etaMinutes(routeDistanceKm, this.averageSpeedKmh);
-        const score = routeDistanceKm + arrivalMinutes;
+        const score = arrivalMinutes;
 
         return {
           driver,
@@ -47,7 +58,11 @@ export class MatchingService {
         } as DriverScore;
       })
       .filter((entry): entry is DriverScore => !!entry)
-      .sort((a, b) => a.score - b.score);
+      .sort((a, b) =>
+        a.score - b.score ||
+        b.driver.rating - a.driver.rating ||
+        a.driver.id - b.driver.id
+      );
   }
 
   greedyMatch(drivers: Driver[], request: RideRequest): DriverScore | null {

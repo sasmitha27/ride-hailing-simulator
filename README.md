@@ -17,6 +17,8 @@ This project is especially suitable for coursework demonstrations because it cle
 ## Features
 
 - Real-time simulation dashboard with map-based visualization
+- Visible algorithm trace with candidate count, ETA, distance, and Dijkstra path
+- Highlighted route for the latest driver-to-passenger match
 - Driver and ride request management APIs
 - Priority request handling (VIP/urgent requests are served first)
 - Automatic customer request generation
@@ -40,16 +42,16 @@ Why it is useful:
 ### 2) Greedy Matching Strategy
 After scoring candidate drivers, the system immediately selects the best current option.
 
-Scoring formula used:
+Selection rule used:
 
-score = routeDistanceKm + etaMinutes
+minimum ETA, then highest rating, then lowest driver ID
 
 Where:
-- routeDistanceKm is computed from shortest path on graph
+- routeDistanceKm includes driver-to-graph and graph-to-passenger links
 - etaMinutes is derived from route distance and average speed
 
 Why it is useful:
-- Fast and practical for real-time dispatch decisions.
+- Fast and practical for real-time dispatch decisions, with deterministic tie-breaking.
 
 ### 3) Haversine Distance
 Used for geographic (great-circle) distance between latitude/longitude coordinates.
@@ -57,7 +59,7 @@ Used for geographic (great-circle) distance between latitude/longitude coordinat
 Where it is used:
 - Filtering nearby drivers within a search radius
 - Ride validation constraints
-- Final ride distance estimation
+- First/last-mile links between map coordinates and graph nodes
 
 ## Data Structures Used
 
@@ -73,7 +75,8 @@ Used in two places:
 - Priority ride requests (VIP requests dequeued before normal)
 
 Current implementation detail:
-- Array-based priority insertion (sufficient for coursework-scale simulation)
+- Stable binary min-heap with O(log n) enqueue/dequeue
+- Arrival sequence preserves FIFO order when priorities are equal
 
 ### 3) FIFO Queue
 Stores normal ride requests in arrival order.
@@ -230,13 +233,12 @@ Frontend runs at:
 
 ## Academic Notes (Complexity Discussion)
 
-- Dijkstra with current array-priority queue behaves approximately O(V^2 + E) in this implementation context.
-- A binary-heap priority queue could improve asymptotic performance for larger graphs.
+- Dijkstra with the binary min-heap runs in O((V + E) log V) for this sparse weighted graph.
+- Nearest-node lookup is O(V), while greedy candidate scoring runs Dijkstra once per nearby driver.
 - Current design is intentionally readable and demonstrable for coursework.
 
 ## Future Improvements
 
-- Replace array priority queue with binary heap
 - Add global assignment optimization (Hungarian / min-cost flow)
 - Add surge-pricing or driver rating weight into score
 - Add simulation replay + analytics charts
